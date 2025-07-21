@@ -1,0 +1,432 @@
+# Configuration globale
+global:
+  domain: oro.demo
+  storageClass: standard
+  imagePullSecrets: []
+
+# Configuration du Frontend (Nginx)
+frontend:
+  enabled: true
+  name: nginx
+  replicaCount: 2
+  image:
+    repository: nginx
+    tag: "1.25-alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 80
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - host: oro.demo
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: oro-tls
+        hosts:
+          - oro.demo
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Configuration du Backend (OroCommerce App)
+backend:
+  enabled: true
+  name: orocommerce-app
+  replicaCount: 3
+  image:
+    repository: oroinc/orocommerce-application
+    tag: "6.1"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9000
+    targetPort: 9000
+  
+  # Configuration HPA
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Variables d'environnement
+  env:
+    - name: ORO_APP_DOMAIN
+      value: "oro.demo"
+    - name: ORO_DB_HOST
+      value: "orocommerce-postgresql"
+    - name: ORO_DB_NAME
+      value: "orocommerce"
+    - name: ORO_DB_USER
+      value: "orocommerce"
+    - name: ORO_REDIS_HOST
+      value: "orocommerce-redis-master"
+    - name: ORO_ELASTICSEARCH_HOST
+      value: "orocommerce-elasticsearch"
+    - name: ORO_ELASTICSEARCH_PORT
+      value: "9200"
+  
+  # Configuration des secrets
+  secrets:
+    - name: ORO_DB_PASSWORD
+      key: postgres-password
+      secret: orocommerce-postgresql
+    - name: ORO_REDIS_PASSWORD
+      key: redis-password
+      secret: orocommerce-redis
+  
+  # Probes de santé
+  livenessProbe:
+    exec:
+      command:
+        - echo
+        - "healthy"
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    exec:
+      command:
+        - echo
+        - "ready"
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Configuration PostgreSQL (via Bitnami)
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "postgres123"
+    username: "orocommerce"
+    password: "orocommerce123"
+    database: "orocommerce"
+  
+  architecture: standalone
+  
+  primary:
+    persistence:
+      enabled: true
+      storageClass: standard
+      size: 20Gi
+    
+    resources:
+      limits:
+        cpu: 2
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+    
+    # Configuration PostgreSQL optimisée
+    pgHbaConfiguration: |
+      local all all trust
+      host all all 127.0.0.1/32 trust
+      host all all ::1/128 trust
+      host all all 0.0.0.0/0 md5
+    
+    configuration: |
+      max_connections = 200
+      shared_buffers = 1GB
+      effective_cache_size = 3GB
+      maintenance_work_mem = 256MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 10MB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+
+# Configuration Redis (via Bitnami)
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "redis123"
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: true
+      storageClass: standard
+      size: 5Gi
+    
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    
+    # Configuration Redis optimisée
+    configuration: |
+      maxmemory 1gb
+      maxmemory-policy allkeys-lru
+      save 900 1
+      save 300 10
+      save 60 10000
+      tcp-keepalive 300
+
+# Configuration Elasticsearch (via Bitnami)
+elasticsearch:
+  enabled: true
+  
+  master:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      storageClass: standard
+      size: 10Gi
+    
+    resources:
+      limits:
+        cpu: 2
+        memory: 4Gi
+      requests:
+        cpu: 1
+        memory: 2Gi
+    
+    # Configuration Elasticsearch
+    heapSize: 2g
+    
+    # Configuration JVM
+    extraEnvVars:
+      - name: ES_JAVA_OPTS
+        value: "-Xms2g -Xmx2g"
+      - name: discovery.type
+        value: "single-node"
+  
+  data:
+    replicaCount: 1
+    persistence:
+      enabled: true
+      storageClass: standard
+      size: 20Gi
+    
+    resources:
+      limits:
+        cpu: 2
+        memory: 4Gi
+      requests:
+        cpu: 1
+        memory: 2Gi
+    
+    heapSize: 2g
+
+# Configuration du monitoring
+monitoring:
+  enabled: true
+  
+  prometheus:
+    enabled: true
+    server:
+      persistentVolume:
+        enabled: true
+        storageClass: standard
+        size: 10Gi
+      
+      resources:
+        limits:
+          cpu: 1
+          memory: 2Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+    
+    alertmanager:
+      enabled: true
+      persistentVolume:
+        enabled: true
+        storageClass: standard
+        size: 2Gi
+  
+  grafana:
+    enabled: true
+    adminPassword: "admin123"
+    
+    persistence:
+      enabled: true
+      storageClass: standard
+      size: 5Gi
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    
+    # Dashboards pré-configurés
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+        - name: 'default'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+    
+    dashboards:
+      default:
+        orocommerce-overview:
+          url: https://grafana.com/api/dashboards/1860/revisions/37/download
+          datasource: Prometheus
+        kubernetes-cluster:
+          url: https://grafana.com/api/dashboards/7249/revisions/1/download
+          datasource: Prometheus
+
+# Configuration SSL/TLS
+tls:
+  enabled: true
+  secretName: oro-tls
+  issuer: letsencrypt-prod
+
+# Configuration des volumes partagés
+volumes:
+  media:
+    storageClass: standard
+    size: 10Gi
+    accessMode: ReadWriteMany
+  
+  logs:
+    storageClass: standard
+    size: 5Gi
+    accessMode: ReadWriteMany
+
+# Configuration des services workers
+workers:
+  enabled: true
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Configuration des jobs de maintenance
+jobs:
+  enabled: true
+  
+  # Job de warm-up du cache
+  cacheWarmup:
+    enabled: true
+    schedule: "0 2 * * *"
+    image:
+      repository: oroinc/orocommerce-application
+      tag: "6.1"
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+  
+  # Job de nettoyage des logs
+  logCleanup:
+    enabled: true
+    schedule: "0 3 * * 0"
+    image:
+      repository: busybox
+      tag: "1.36"
+    
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+
+# Configuration des NetworkPolicies
+networkPolicies:
+  enabled: true
+  
+  # Politique par défaut - deny all
+  defaultDeny: true
+  
+  # Permettre le trafic entre les composants
+  allowInternal: true
+  
+  # Permettre le trafic externe vers le frontend
+  allowExternal: true
+
+# Configuration des PodSecurityPolicies
+podSecurityPolicy:
+  enabled: true
+  
+  # Politique restrictive
+  restrictive: true
+  
+  # Autorisations spécifiques
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+# Configuration des ServiceMonitors pour Prometheus
+serviceMonitor:
+  enabled: true
+  
+  # Intervalle de scraping
+  interval: 30s
+  
+  # Endpoints à monitorer
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s 

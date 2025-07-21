@@ -1,0 +1,132 @@
+# Configuration simple pour test rapide
+# Utilise des images standard qui fonctionnent
+
+global:
+  domain: oro.local
+  storageClass: hostpath
+  imagePullSecrets: []
+
+# Configuration du Frontend (Nginx)
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.25-alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: NodePort
+    port: 80
+    targetPort: 80
+  
+  ingress:
+    enabled: false
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Configuration du Backend (PHP-FPM simple)
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: php
+    tag: "8.1-fpm-alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 9000
+  
+  autoscaling:
+    enabled: false
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  
+  env:
+    - name: PHP_FPM_USER
+      value: "www-data"
+    - name: PHP_FPM_GROUP
+      value: "www-data"
+  
+  secrets: []
+  
+  livenessProbe: {}
+  readinessProbe: {}
+
+# Configuration simplifiée des dépendances
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "postgres"
+    username: "orocommerce"
+    password: "orocommerce"
+    database: "orocommerce"
+  architecture: standalone
+  primary:
+    persistence:
+      enabled: true
+      storageClass: hostpath
+      size: 5Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+redis:
+  enabled: false
+
+elasticsearch:
+  enabled: false
+
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+
+tls:
+  enabled: false
+
+volumes:
+  media:
+    storageClass: hostpath
+    size: 1Gi
+    accessMode: ReadWriteOnce
+  
+  logs:
+    storageClass: hostpath
+    size: 1Gi
+    accessMode: ReadWriteOnce
+
+workers:
+  enabled: false
+
+jobs:
+  enabled: false
+
+networkPolicies:
+  enabled: false
+
+podSecurityPolicy:
+  enabled: false
+
+serviceMonitor:
+  enabled: false 

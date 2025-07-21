@@ -1,0 +1,35 @@
+{{- if .Values.volumes.media }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "orocommerce.fullname" . }}-media
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orocommerce.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - {{ .Values.volumes.media.accessMode }}
+  storageClassName: {{ .Values.volumes.media.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.volumes.media.size }}
+---
+{{- end }}
+{{- if .Values.volumes.logs }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "orocommerce.fullname" . }}-logs
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orocommerce.labels" . | nindent 4 }}
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - {{ .Values.volumes.logs.accessMode }}
+  storageClassName: {{ .Values.volumes.logs.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.volumes.logs.size }}
+{{- end }} 

@@ -1,0 +1,433 @@
+# Configuration de production pour OroCommerce
+# ⚠️ Modifiez ces valeurs selon votre environnement
+
+# Configuration globale
+global:
+  domain: your-domain.com              # 🔧 Changez ce domaine
+  storageClass: gp2                    # 🔧 Adaptez selon votre cloud provider
+  imagePullSecrets: []
+
+# Configuration du Frontend (Nginx)
+frontend:
+  enabled: true
+  replicaCount: 3                      # Plus de répliques pour la production
+  image:
+    repository: nginx
+    tag: "1.25-alpine"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    hosts:
+      - host: your-domain.com           # 🔧 Changez ce domaine
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: oro-tls-prod
+        hosts:
+          - your-domain.com             # 🔧 Changez ce domaine
+  
+  resources:
+    limits:
+      cpu: 1
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Configuration du Backend (OroCommerce App)
+backend:
+  enabled: true
+  replicaCount: 5                      # Plus de répliques pour la production
+  image:
+    repository: oroinc/orocommerce-application
+    tag: "6.1"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9000
+    targetPort: 9000
+  
+  # Configuration HPA plus agressive
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+  
+  resources:
+    limits:
+      cpu: 4
+      memory: 8Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+  
+  # Variables d'environnement
+  env:
+    - name: ORO_APP_DOMAIN
+      value: "your-domain.com"          # 🔧 Changez ce domaine
+    - name: ORO_DB_HOST
+      value: "orocommerce-postgresql"
+    - name: ORO_DB_NAME
+      value: "orocommerce"
+    - name: ORO_DB_USER
+      value: "orocommerce"
+    - name: ORO_REDIS_HOST
+      value: "orocommerce-redis-master"
+    - name: ORO_ELASTICSEARCH_HOST
+      value: "orocommerce-elasticsearch"
+    - name: ORO_ELASTICSEARCH_PORT
+      value: "9200"
+    - name: APP_ENV
+      value: "prod"
+    - name: SYMFONY_ENV
+      value: "prod"
+  
+  # Configuration des secrets
+  secrets:
+    - name: ORO_DB_PASSWORD
+      key: postgres-password
+      secret: orocommerce-postgresql
+    - name: ORO_REDIS_PASSWORD
+      key: redis-password
+      secret: orocommerce-redis
+  
+  # Probes de santé plus strictes
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 9000
+    initialDelaySeconds: 180
+    periodSeconds: 30
+    timeoutSeconds: 15
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 9000
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+# Configuration PostgreSQL (via Bitnami)
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "CHANGE_ME_STRONG_PASSWORD"  # 🔧 Changez ce mot de passe
+    username: "orocommerce"
+    password: "CHANGE_ME_STRONG_PASSWORD"          # 🔧 Changez ce mot de passe
+    database: "orocommerce"
+  
+  architecture: standalone
+  
+  primary:
+    persistence:
+      enabled: true
+      storageClass: gp2                 # 🔧 Adaptez selon votre cloud provider
+      size: 100Gi                       # Plus d'espace pour la production
+    
+    resources:
+      limits:
+        cpu: 4
+        memory: 8Gi
+      requests:
+        cpu: 2
+        memory: 4Gi
+    
+    # Configuration PostgreSQL optimisée pour la production
+    pgHbaConfiguration: |
+      local all all trust
+      host all all 127.0.0.1/32 trust
+      host all all ::1/128 trust
+      host all all 0.0.0.0/0 md5
+    
+    configuration: |
+      # Configuration optimisée pour la production
+      max_connections = 500
+      shared_buffers = 2GB
+      effective_cache_size = 6GB
+      maintenance_work_mem = 512MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 32MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 20MB
+      min_wal_size = 2GB
+      max_wal_size = 8GB
+      max_worker_processes = 8
+      max_parallel_workers_per_gather = 4
+      max_parallel_workers = 8
+      max_parallel_maintenance_workers = 4
+      log_min_duration_statement = 1000
+      log_checkpoints = on
+      log_connections = on
+      log_disconnections = on
+      log_lock_waits = on
+      log_temp_files = 0
+      shared_preload_libraries = 'pg_stat_statements'
+
+# Configuration Redis (via Bitnami)
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "CHANGE_ME_STRONG_PASSWORD"  # 🔧 Changez ce mot de passe
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: true
+      storageClass: gp2                 # 🔧 Adaptez selon votre cloud provider
+      size: 20Gi                        # Plus d'espace pour la production
+    
+    resources:
+      limits:
+        cpu: 2
+        memory: 4Gi
+      requests:
+        cpu: 1
+        memory: 2Gi
+    
+    # Configuration Redis optimisée pour la production
+    configuration: |
+      maxmemory 3gb
+      maxmemory-policy allkeys-lru
+      save 900 1
+      save 300 10
+      save 60 10000
+      tcp-keepalive 300
+      timeout 0
+      databases 16
+      rdbcompression yes
+      rdbchecksum yes
+      stop-writes-on-bgsave-error yes
+      lazyfree-lazy-eviction yes
+      lazyfree-lazy-expire yes
+      lazyfree-lazy-server-del yes
+
+# Configuration Elasticsearch (via Bitnami)
+elasticsearch:
+  enabled: true
+  
+  master:
+    replicaCount: 3                     # Haute disponibilité
+    persistence:
+      enabled: true
+      storageClass: gp2                 # 🔧 Adaptez selon votre cloud provider
+      size: 50Gi
+    
+    resources:
+      limits:
+        cpu: 4
+        memory: 8Gi
+      requests:
+        cpu: 2
+        memory: 4Gi
+    
+    # Configuration Elasticsearch pour la production
+    heapSize: 4g
+    
+    # Configuration JVM optimisée
+    extraEnvVars:
+      - name: ES_JAVA_OPTS
+        value: "-Xms4g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      - name: discovery.type
+        value: "zen"
+      - name: cluster.name
+        value: "orocommerce-cluster"
+      - name: node.name
+        value: "orocommerce-node"
+      - name: network.host
+        value: "0.0.0.0"
+      - name: http.port
+        value: "9200"
+      - name: transport.tcp.port
+        value: "9300"
+  
+  data:
+    replicaCount: 3                     # Haute disponibilité
+    persistence:
+      enabled: true
+      storageClass: gp2                 # 🔧 Adaptez selon votre cloud provider
+      size: 100Gi                       # Plus d'espace pour la production
+    
+    resources:
+      limits:
+        cpu: 4
+        memory: 8Gi
+      requests:
+        cpu: 2
+        memory: 4Gi
+    
+    heapSize: 4g
+
+# Configuration du monitoring
+monitoring:
+  enabled: true
+  
+  prometheus:
+    enabled: true
+    server:
+      persistentVolume:
+        enabled: true
+        storageClass: gp2               # 🔧 Adaptez selon votre cloud provider
+        size: 50Gi                      # Plus d'espace pour la production
+      
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 1
+          memory: 2Gi
+      
+      retention: "90d"                  # Rétention plus longue pour la production
+    
+    alertmanager:
+      enabled: true
+      persistentVolume:
+        enabled: true
+        storageClass: gp2               # 🔧 Adaptez selon votre cloud provider
+        size: 10Gi
+  
+  grafana:
+    enabled: true
+    adminPassword: "CHANGE_ME_STRONG_PASSWORD"  # 🔧 Changez ce mot de passe
+    
+    persistence:
+      enabled: true
+      storageClass: gp2                 # 🔧 Adaptez selon votre cloud provider
+      size: 10Gi
+    
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+# Configuration SSL/TLS
+tls:
+  enabled: true
+  secretName: oro-tls-prod
+  issuer: letsencrypt-prod
+
+# Configuration des volumes partagés
+volumes:
+  media:
+    storageClass: efs                   # 🔧 Utilisez EFS pour ReadWriteMany sur AWS
+    size: 50Gi                          # Plus d'espace pour la production
+    accessMode: ReadWriteMany
+  
+  logs:
+    storageClass: efs                   # 🔧 Utilisez EFS pour ReadWriteMany sur AWS
+    size: 20Gi                          # Plus d'espace pour la production
+    accessMode: ReadWriteMany
+
+# Configuration des services workers
+workers:
+  enabled: true
+  replicaCount: 5                       # Plus de workers pour la production
+  
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+
+# Configuration des jobs de maintenance
+jobs:
+  enabled: true
+  
+  # Job de warm-up du cache
+  cacheWarmup:
+    enabled: true
+    schedule: "0 2 * * *"              # Tous les jours à 2h
+    image:
+      repository: oroinc/orocommerce-application
+      tag: "6.1"
+    
+    resources:
+      limits:
+        cpu: 1
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+  
+  # Job de nettoyage des logs
+  logCleanup:
+    enabled: true
+    schedule: "0 3 * * 0"              # Tous les dimanches à 3h
+    image:
+      repository: busybox
+      tag: "1.36"
+    
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Configuration des NetworkPolicies
+networkPolicies:
+  enabled: true
+  
+  # Politique par défaut - deny all
+  defaultDeny: true
+  
+  # Permettre le trafic entre les composants
+  allowInternal: true
+  
+  # Permettre le trafic externe vers le frontend
+  allowExternal: true
+
+# Configuration des PodSecurityPolicies
+podSecurityPolicy:
+  enabled: true
+  
+  # Politique restrictive
+  restrictive: true
+  
+  # Autorisations spécifiques
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+# Configuration des ServiceMonitors pour Prometheus
+serviceMonitor:
+  enabled: true
+  
+  # Intervalle de scraping
+  interval: 15s                         # Plus fréquent pour la production
+  
+  # Endpoints à monitorer
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s 

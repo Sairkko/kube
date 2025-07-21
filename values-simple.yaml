@@ -1,0 +1,84 @@
+backend:
+  enabled: true
+  image:
+    repository: nginx
+    tag: 1.25-alpine
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 1
+  
+  # Désactiver les health checks temporairement
+  livenessProbe:
+    enabled: false
+  
+  readinessProbe:
+    enabled: false
+  
+  hpa:
+    enabled: false
+
+frontend:
+  enabled: true
+  image:
+    repository: nginx
+    tag: 1.25-alpine
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  service:
+    type: NodePort
+    port: 80
+    targetPort: 80
+  
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 200m
+
+# Désactiver les dépendances externes pour simplicité
+mysql:
+  enabled: false
+
+redis:
+  enabled: false
+
+elasticsearch:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+# Configuration d'ingress désactivée
+ingress:
+  enabled: false
+
+# Configuration de persistance simplifiée
+persistence:
+  media:
+    enabled: true
+    size: 1Gi
+    storageClass: hostpath
+  logs:
+    enabled: true
+    size: 500Mi
+    storageClass: hostpath 

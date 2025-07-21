@@ -1,0 +1,129 @@
+🚀 OroCommerce déployé avec succès sur Kubernetes !
+
+📋 Informations de déploiement :
+==================================
+
+✅ Composants déployés :
+{{- if .Values.frontend.enabled }}
+  - Frontend (Nginx) : {{ .Values.frontend.replicaCount }} répliques
+{{- end }}
+{{- if .Values.backend.enabled }}
+  - Backend (OroCommerce) : {{ .Values.backend.replicaCount }} répliques
+{{- end }}
+{{- if .Values.postgresql.enabled }}
+  - PostgreSQL : Base de données
+{{- end }}
+{{- if .Values.redis.enabled }}
+  - Redis : Cache
+{{- end }}
+{{- if .Values.elasticsearch.enabled }}
+  - Elasticsearch : Recherche
+{{- end }}
+{{- if .Values.monitoring.enabled }}
+  - Monitoring : Prometheus + Grafana
+{{- end }}
+
+🌐 Accès à l'application :
+==========================
+
+{{- if .Values.frontend.ingress.enabled }}
+{{- range .Values.frontend.ingress.hosts }}
+  🔗 Application : https://{{ .host }}
+  🔗 Admin : https://{{ .host }}/admin
+{{- end }}
+{{- else }}
+  ⚠️  Ingress désactivé. Utilisez port-forward pour accéder à l'application :
+  
+  kubectl port-forward svc/{{ include "orocommerce.fullname" . }}-frontend {{ .Values.frontend.service.port }}:{{ .Values.frontend.service.port }}
+  
+  Puis accédez à : http://localhost:{{ .Values.frontend.service.port }}
+{{- end }}
+
+🔐 Identifiants par défaut :
+============================
+
+📊 OroCommerce Admin :
+  - Login : admin
+  - Password : admin
+
+{{- if .Values.monitoring.grafana.enabled }}
+📈 Grafana :
+  - URL : http://{{ .Values.global.domain }}/grafana
+  - Login : admin
+  - Password : {{ .Values.monitoring.grafana.adminPassword }}
+{{- end }}
+
+🔧 Commandes utiles :
+===================
+
+📊 Vérifier le statut des pods :
+  kubectl get pods -l app.kubernetes.io/name={{ include "orocommerce.name" . }}
+
+📋 Logs de l'application :
+  kubectl logs -f deployment/{{ include "orocommerce.fullname" . }}-backend
+
+🔍 Monitoring :
+  kubectl get servicemonitor -l app.kubernetes.io/name={{ include "orocommerce.name" . }}
+
+🔄 Mise à jour :
+  helm upgrade {{ .Release.Name }} ./oro-k8s-migration
+
+📊 Métriques HPA :
+  kubectl get hpa {{ include "orocommerce.fullname" . }}-backend
+
+⚠️  Notes importantes :
+======================
+
+{{- if .Values.postgresql.enabled }}
+🗄️  PostgreSQL :
+  - Base de données : {{ .Values.postgresql.auth.database }}
+  - Utilisateur : {{ .Values.postgresql.auth.username }}
+  - Le mot de passe est stocké dans le secret 'orocommerce-postgresql'
+{{- end }}
+
+{{- if .Values.redis.enabled }}
+🔄 Redis :
+  - Cache configuré avec persistance
+  - Mot de passe stocké dans le secret 'orocommerce-redis'
+{{- end }}
+
+{{- if .Values.elasticsearch.enabled }}
+🔍 Elasticsearch :
+  - Index de recherche configuré
+  - Heap size : {{ .Values.elasticsearch.master.heapSize }}
+{{- end }}
+
+{{- if .Values.backend.autoscaling.enabled }}
+📈 Auto-scaling :
+  - Min répliques : {{ .Values.backend.autoscaling.minReplicas }}
+  - Max répliques : {{ .Values.backend.autoscaling.maxReplicas }}
+  - CPU target : {{ .Values.backend.autoscaling.targetCPUUtilizationPercentage }}%
+  - Memory target : {{ .Values.backend.autoscaling.targetMemoryUtilizationPercentage }}%
+{{- end }}
+
+{{- if .Values.tls.enabled }}
+🔒 SSL/TLS :
+  - Certificat automatique via cert-manager
+  - Issuer : {{ .Values.tls.issuer }}
+{{- end }}
+
+🎯 Prochaines étapes :
+=====================
+
+1. 🔧 Configurer vos domaines DNS
+2. 📧 Configurer SMTP pour les emails
+3. 🔐 Changer les mots de passe par défaut
+4. 📊 Configurer les alertes dans Grafana
+5. 🔄 Tester l'auto-scaling
+6. 📋 Configurer les sauvegardes
+
+🆘 Support :
+============
+
+📚 Documentation : https://doc.oroinc.com
+🐛 Issues : https://github.com/oroinc/orocommerce/issues
+💬 Community : https://oroinc.com/community
+
+===================================
+✨ Migration Docker → Kubernetes réussie !
+=================================== 

@@ -1,0 +1,97 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orocommerce.fullname" . }}-frontend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orocommerce.frontend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "orocommerce.frontend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "orocommerce.frontend.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/frontend/configmap.yaml") . | sha256sum }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- include "orocommerce.securityContext" . | nindent 6 }}
+      containers:
+        - name: nginx
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: media-storage
+              mountPath: /var/www/html/public/media
+            - name: logs
+              mountPath: /var/log/nginx
+          {{- include "orocommerce.resources" .Values.frontend | nindent 10 }}
+        
+        # Nginx Prometheus Exporter
+        - name: nginx-exporter
+          image: nginx/nginx-prometheus-exporter:1.1.0
+          args:
+            - -nginx.scrape-uri=http://localhost/nginx_status
+          ports:
+            - name: metrics
+              containerPort: 9113
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+      
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "orocommerce.fullname" . }}-nginx-config
+        - name: media-storage
+          persistentVolumeClaim:
+            claimName: {{ include "orocommerce.fullname" . }}-media
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ include "orocommerce.fullname" . }}-logs
+      
+      {{- include "orocommerce.nodeSelector" .Values.frontend | nindent 6 }}
+      {{- include "orocommerce.tolerations" .Values.frontend | nindent 6 }}
+      {{- include "orocommerce.affinity" .Values.frontend | nindent 6 }}
+{{- end }} 
