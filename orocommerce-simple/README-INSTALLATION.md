@@ -10,7 +10,7 @@
 
 ### 1. Installation complète
 ```bash
-helm install orocommerce-simple . --values values-production.yaml
+helm install orocommerce-simple . -f values.yaml
 ```
 
 ### 2. Vérification de l'installation

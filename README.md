@@ -24,9 +24,9 @@ helm install orocommerce-simple . -f values.yaml
 
 ## 🌐 Accès
 
-- **Frontend** : http://localhost:30080
-- **Admin** : http://localhost:30080/admin (admin/admin)
-- **MailHog** : http://localhost:30025
+- **Frontend** : oro.demo:30080
+- **Admin** : http://oro.demo:30080/admin (admin/admin)
+- **MailHog** : http://localhost:32446/mailcatcher/
 
 ## 📖 Documentation
 
