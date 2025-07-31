@@ -19,7 +19,7 @@ kube/
 
 ```bash
 cd orocommerce-simple
-helm install orocommerce-simple . --values values-production.yaml
+helm install orocommerce-simple . -f values.yaml
 ```
 
 ## 🌐 Accès
