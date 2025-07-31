@@ -1,0 +1,18 @@
+dependencies:
+- name: webserver
+  repository: file://charts/webserver
+  version: 0.1.0
+- name: database
+  repository: file://charts/database
+  version: 0.1.0
+- name: php-fpm
+  repository: file://charts/php-fpm
+  version: 0.1.0
+- name: websocket
+  repository: file://charts/websocket
+  version: 0.1.0
+- name: mail
+  repository: file://charts/mail
+  version: 0.1.0
+digest: sha256:8647c541dd6c5c73657c7fd287b694b6d291e4f37efb4d430c4f4f56372d30b8
+generated: "2025-07-31T20:27:52.7118004+02:00"

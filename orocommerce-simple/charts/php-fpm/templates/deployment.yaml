@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "phpfpm.fullname" . }}
+  labels:
+    app: {{ include "phpfpm.name" . }}
+spec:
+  replicas: {{ .Values.phpfpm.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "phpfpm.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "phpfpm.name" . }}
+    spec:
+      serviceAccountName: {{ include "phpfpm.fullname" . }}
+      initContainers:
+      # This is a workaround to wait for the volume initialization to complete. Less visible than a kubectl job. But improves the performance of the deployment.
+        - name: wait-for-volume-init
+          image: busybox:1.35
+          command: ['sh', '-c', 'until test -f /var/www/oro/.volume-initialized; do echo "Waiting for volume initialization..."; sleep 10; done']
+          volumeMounts:
+            - name: oro-app
+              mountPath: /var/www/oro
+      containers:
+        - name: php-fpm-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["php-fpm"]
+          args: ["-F", "-c", "/usr/local/etc/php/php.ini", "-y", "/usr/local/etc/php-fpm.conf"]
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+              name: php-fpm-app
+          envFrom:
+            - configMapRef:
+                name: orocommerce-simple-global-config
+          env:
+            - name: ORO_SECRET
+              value: "2f8c7e1a9b4d6f3e2c1b8a7d6e5f4c3b"
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            limits:
+              cpu: {{ .Values.phpfpm.resources.limits.cpu }}
+              memory: {{ .Values.phpfpm.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.phpfpm.resources.requests.cpu }}
+              memory: {{ .Values.phpfpm.resources.requests.memory }}
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: php-fpm-config
+              mountPath: /usr/local/etc/php-fpm.conf
+              subPath: php-fpm.conf
+            - name: oro-app
+              mountPath: /var/www/oro
+            - name: cache
+              mountPath: /var/www/oro/var/cache
+            - name: maintenance
+              mountPath: /var/www/oro/var/maintenance
+            - name: public-storage
+              mountPath: /var/www/oro/public/media
+            - name: private-storage
+              mountPath: /var/www/oro/var/data
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+        - name: php-fpm-config
+          configMap:
+            name: {{ include "phpfpm.fullname" . }}-config 
+        - name: oro-app
+          persistentVolumeClaim:
+            claimName: {{ .Values.phpfpm.volumes.oroApp.claimName }}
+        - name: cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.phpfpm.volumes.cache.claimName }}
+        - name: maintenance
+          persistentVolumeClaim:
+            claimName: {{ .Values.phpfpm.volumes.maintenance.claimName }}
+        - name: public-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.phpfpm.volumes.publicStorage.claimName }}
+        - name: private-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.phpfpm.volumes.privateStorage.claimName }} 

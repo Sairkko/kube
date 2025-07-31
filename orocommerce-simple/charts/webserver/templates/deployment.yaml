@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "webserver.fullname" . }}
+spec:
+  replicas: {{ .Values.webserver.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "webserver.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "webserver.name" . }}
+    spec:
+      initContainers:
+        - name: wait-for-volume-init
+          image: busybox:1.35
+          command: ['sh', '-c', 'until test -f /var/www/oro/.volume-initialized; do echo "Waiting for volume initialization..."; sleep 10; done']
+          volumeMounts:
+            - name: oro-app
+              mountPath: /var/www/oro
+
+
+      containers:
+        - name: webserver
+          image: nginx:alpine
+          imagePullPolicy: IfNotPresent
+          command: ["nginx"]
+          args: ["-g", "daemon off;"]
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: orocommerce-simple-global-config
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: oro-app
+              mountPath: /var/www/oro
+            - name: cache
+              mountPath: /var/www/oro/var/cache
+            - name: maintenance
+              mountPath: /var/www/oro/var/maintenance
+            - name: public-storage
+              mountPath: /var/www/oro/public/media
+            - name: private-storage
+              mountPath: /var/www/oro/var/data
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-config
+        - name: oro-app
+          persistentVolumeClaim:
+            claimName: {{ .Values.webserver.volumes.oroApp.claimName }}
+        - name: cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.webserver.volumes.cache.claimName }}
+        - name: maintenance
+          persistentVolumeClaim:
+            claimName: {{ .Values.webserver.volumes.maintenance.claimName }}
+        - name: public-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.webserver.volumes.publicStorage.claimName }}
+        - name: private-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.webserver.volumes.privateStorage.claimName }}

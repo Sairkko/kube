@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-orocommerce-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: copy-app
+        image: oroinc/orocommerce-application:6.1.0
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          cp -r /var/www/oro/* /var/www/oro-app/
+          chown -R www-data:www-data /var/www/oro-app/
+          echo "Application copied successfully"
+        volumeMounts:
+        - name: oro-app
+          mountPath: /var/www/oro-app
+      volumes:
+      - name: oro-app
+        persistentVolumeClaim:
+          claimName: oro-app-orocommerce-simple
+      restartPolicy: Never
+  backoffLimit: 3 

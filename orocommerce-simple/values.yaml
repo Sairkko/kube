@@ -1,0 +1,96 @@
+# Configuration simplifiée pour OroCommerce en développement local
+
+# Configuration des volumes persistants
+storage:
+  oroApp:
+    size: "5Gi"
+    storageClass: ""
+  cache:
+    size: "2Gi"
+    storageClass: ""
+  maintenance:
+    size: "1Gi"
+    storageClass: ""
+  publicStorage:
+    size: "2Gi"
+    storageClass: ""
+  privateStorage:
+    size: "2Gi"
+    storageClass: ""
+
+# Configuration des jobs
+jobs:
+  volumeInit:
+    enabled: true
+  restoreInit:
+    enabled: false
+  cleanupVolumes:
+    enabled: false
+  install:
+    enabled: true
+
+# Configuration des sous-charts
+webserver:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 30080
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+database:
+  enabled: true
+  env:
+    POSTGRES_ROOT_PASSWORD: orocommerce
+    POSTGRES_DB: orocommerce
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: orocommerce
+
+php-fpm:
+  enabled: true
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+websocket:
+  enabled: true
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+mail:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 30025
+  ui:
+    enabled: true
+    service:
+      type: NodePort
+      port: 8025
+      nodePort: 32446 
