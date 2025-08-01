@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "websocket.fullname" . }}
+  labels:
+    app: {{ include "websocket.name" . }}
+spec:
+  replicas: {{ .Values.websocket.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "websocket.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "websocket.name" . }}
+    spec:
+      initContainers:
+        - name: wait-for-volume-init
+          image: busybox:1.35
+          command: ['sh', '-c', 'until test -f /var/www/oro/.volume-initialized; do echo "Waiting for volume initialization..."; sleep 10; done']
+          volumeMounts:
+            - name: oro-app
+              mountPath: /var/www/oro
+      containers:
+        - name: ws
+          command: ["/usr/local/bin/docker-entrypoint.sh"]
+          args: ["websocket"]
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+              name: ws
+          envFrom:
+            - configMapRef:
+                name: orocommerce-simple-global-config
+          resources:
+            limits:
+              cpu: {{ .Values.websocket.resources.limits.cpu }}
+              memory: {{ .Values.websocket.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.websocket.resources.requests.cpu }}
+              memory: {{ .Values.websocket.resources.requests.memory }}
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+            - name: oro-app
+              mountPath: /var/www/oro
+            - name: cache
+              mountPath: /var/www/oro/var/cache
+            - name: maintenance
+              mountPath: /var/www/oro/var/maintenance
+            - name: public-storage
+              mountPath: /var/www/oro/public/media
+            - name: private-storage
+              mountPath: /var/www/oro/var/data
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
+        - name: oro-app
+          persistentVolumeClaim:
+            claimName: {{ .Values.websocket.volumes.oroApp.claimName }}
+        - name: cache
+          persistentVolumeClaim:
+            claimName: {{ .Values.websocket.volumes.cache.claimName }}
+        - name: maintenance
+          persistentVolumeClaim:
+            claimName: {{ .Values.websocket.volumes.maintenance.claimName }}
+        - name: public-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.websocket.volumes.publicStorage.claimName }}
+        - name: private-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.websocket.volumes.privateStorage.claimName }} 

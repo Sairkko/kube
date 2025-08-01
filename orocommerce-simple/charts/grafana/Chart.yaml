@@ -1,0 +1,15 @@
+apiVersion: v2
+name: grafana
+description: Grafana monitoring dashboard for OroCommerce
+type: application
+version: 0.1.0
+appVersion: "10.0.0"
+keywords:
+  - monitoring
+  - dashboard
+  - grafana
+home: https://grafana.com/
+sources:
+  - https://github.com/grafana/grafana
+maintainers:
+  - name: OroCommerce Team 

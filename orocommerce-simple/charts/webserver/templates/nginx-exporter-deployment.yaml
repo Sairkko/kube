@@ -1,0 +1,34 @@
+{{- if .Values.nginxExporter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "webserver.fullname" . }}-nginx-exporter
+  labels:
+    app: {{ include "webserver.name" . }}-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "webserver.name" . }}-exporter
+  template:
+    metadata:
+      labels:
+        app: {{ include "webserver.name" . }}-exporter
+      annotations:
+        # Annotations Prometheus
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9113"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: nginx-exporter
+          image: {{ .Values.nginxExporter.image.repository }}:{{ .Values.nginxExporter.image.tag }}
+          imagePullPolicy: {{ .Values.nginxExporter.image.pullPolicy }}
+          args:
+            - -nginx.scrape-uri=http://{{ include "webserver.fullname" . }}:{{ .Values.service.port }}/nginx_status
+          ports:
+            - containerPort: 9113
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.nginxExporter.resources | nindent 12 }}
+{{- end }} 

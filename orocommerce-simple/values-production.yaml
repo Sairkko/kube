@@ -1,0 +1,119 @@
+# Configuration de production pour OroCommerce
+# Ce fichier contient toutes les configurations nécessaires pour une installation propre
+
+# Configuration globale
+global:
+  environment: prod
+  debug: false
+
+# Configuration de la base de données
+database:
+  enabled: true
+  postgresql:
+    enabled: true
+    auth:
+      postgresPassword: "orocommerce"
+      database: "orocommerce"
+    primary:
+      persistence:
+        enabled: true
+        size: 10Gi
+        storageClass: ""
+
+# Configuration PHP-FPM
+php-fpm:
+  enabled: true
+  image:
+    repository: oroinc/runtime
+    tag: "6.1-latest"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  env:
+    - name: ORO_SECRET
+      value: "2f8c7e1a9b4d6f3e2c1b8a7d6e5f4c3b"
+
+# Configuration du webserver
+webserver:
+  enabled: true
+  image:
+    repository: nginx
+    tag: "alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  service:
+    type: NodePort
+    nodePort: 30080
+  volumes:
+    oroApp:
+      claimName: oro-app-orocommerce-simple
+    cache:
+      claimName: cache-orocommerce-simple
+    maintenance:
+      claimName: maintenance-orocommerce-simple
+    publicStorage:
+      claimName: public-storage-orocommerce-simple
+    privateStorage:
+      claimName: private-storage-orocommerce-simple
+
+# Configuration du service mail
+mail:
+  enabled: true
+  image:
+    repository: mailhog/mailhog
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    nodePort: 30025
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "200m"
+      memory: "256Mi"
+
+# Configuration des jobs d'initialisation
+jobs:
+  install:
+    enabled: false
+  volumeInit:
+    enabled: true
+  cleanupVolumes:
+    enabled: false
+  restoreInit:
+    enabled: false
+
+# Configuration des volumes persistants
+persistence:
+  enabled: true
+  storageClass: ""
+  oroApp:
+    size: 5Gi
+  cache:
+    size: 2Gi
+  maintenance:
+    size: 1Gi
+  publicStorage:
+    size: 2Gi
+  privateStorage:
+    size: 2Gi
+
+# Configuration de sécurité
+security:
+  enabled: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000 

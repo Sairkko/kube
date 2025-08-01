@@ -1,0 +1,166 @@
+# Configuration simplifiée pour OroCommerce en développement local
+
+# Configuration des volumes persistants
+storage:
+  oroApp:
+    size: "5Gi"
+    storageClass: ""
+  cache:
+    size: "2Gi"
+    storageClass: ""
+  maintenance:
+    size: "1Gi"
+    storageClass: ""
+  publicStorage:
+    size: "2Gi"
+    storageClass: ""
+  privateStorage:
+    size: "2Gi"
+    storageClass: ""
+
+# Configuration des jobs
+jobs:
+  volumeInit:
+    enabled: true
+  restoreInit:
+    enabled: false
+  cleanupVolumes:
+    enabled: false
+  install:
+    enabled: true
+  fixPermissions:
+    enabled: false
+
+# Configuration des sous-charts
+webserver:
+  enabled: true
+  service:
+    type: NodePort
+    nodePort: 30080
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+database:
+  enabled: true
+  env:
+    POSTGRES_ROOT_PASSWORD: orocommerce
+    POSTGRES_DB: orocommerce
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: orocommerce
+
+php-fpm:
+  enabled: true
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+websocket:
+  enabled: true
+  volumes:
+    oroApp:
+      claimName: "oro-app-orocommerce-simple"
+    cache:
+      claimName: "cache-orocommerce-simple"
+    maintenance:
+      claimName: "maintenance-orocommerce-simple"
+    publicStorage:
+      claimName: "public-storage-orocommerce-simple"
+    privateStorage:
+      claimName: "private-storage-orocommerce-simple"
+
+mail:
+  enabled: true
+  service:
+    type: NodePort
+    port: 1025
+    nodePort: 30025
+  ui:
+    enabled: true
+    service:
+      type: NodePort
+      port: 8025
+      nodePort: 30616
+
+# Configuration Prometheus pour le monitoring
+prometheus:
+  enabled: true
+  service:
+    type: NodePort
+    port: 9090
+    nodePort: 30909
+  deployment:
+    replicas: 1
+    image:
+      repository: prom/prometheus
+      tag: "v2.45.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    volume:
+      size: "10Gi"
+      storageClass: ""
+
+# Configuration Grafana pour les dashboards
+grafana:
+  enabled: true
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+  deployment:
+    replicas: 1
+    image:
+      repository: grafana/grafana
+      tag: "10.0.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    volume:
+      size: "5Gi"
+      storageClass: ""
+  config:
+    security:
+      admin_user: admin
+      admin_password: admin
+      allow_embedding: true
+    server:
+      http_port: 3000
+      domain: localhost
+      root_url: "%(protocol)s://%(domain)s:30300/"
+      serve_from_sub_path: false
+    database:
+      type: sqlite3
+      path: /var/lib/grafana/grafana.db
+    session:
+      provider: file
+      provider_config: sessions
+    log:
+      mode: console
+      level: info 
