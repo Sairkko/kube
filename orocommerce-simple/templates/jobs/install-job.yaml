@@ -26,8 +26,7 @@ spec:
       containers:
       - name: install
         image: "oroinc/orocommerce-application:6.1.0"
-        command: ["/usr/local/bin/docker-entrypoint.sh"]
-        args: ["install"]
+        command: ["sh", "-c", "/usr/local/bin/docker-entrypoint.sh install && chmod -R 777 /var/www/oro/var/sessions /var/www/oro/var/cache /var/www/oro/var/logs /var/www/oro/public/media && chown -R www-data:www-data /var/www/oro/var/sessions /var/www/oro/var/cache /var/www/oro/var/logs /var/www/oro/public/media && echo 'Installation and permissions fixed successfully'"]
         envFrom:
         - configMapRef:
             name: {{ include "orocommerce-simple.fullname" . }}-global-config
