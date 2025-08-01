@@ -13,6 +13,11 @@ spec:
     metadata:
       labels:
         app: {{ include "phpfpm.name" . }}
+      annotations:
+        # Annotations Prometheus - Désactivé car PHP-FPM n'expose pas de métriques par défaut
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "9000"
+        # prometheus.io/path: "/status"
     spec:
       serviceAccountName: {{ include "phpfpm.fullname" . }}
       initContainers:

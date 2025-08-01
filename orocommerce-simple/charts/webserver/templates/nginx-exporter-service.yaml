@@ -1,0 +1,16 @@
+{{- if .Values.nginxExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "webserver.fullname" . }}-nginx-exporter
+  labels:
+    app: {{ include "webserver.name" . }}-exporter
+spec:
+  selector:
+    app: {{ include "webserver.name" . }}-exporter
+  ports:
+    - name: metrics
+      port: 9113
+      targetPort: 9113
+      protocol: TCP
+{{- end }} 

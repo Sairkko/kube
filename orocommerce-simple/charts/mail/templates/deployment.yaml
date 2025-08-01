@@ -13,6 +13,11 @@ spec:
     metadata:
       labels:
         {{- include "mail.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Annotations Prometheus - Désactivé car MailHog n'expose pas de métriques par défaut
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "8025"
+        # prometheus.io/path: "/metrics"
     spec:
       hostname: {{ .Values.deployment.hostname }}
       containers:

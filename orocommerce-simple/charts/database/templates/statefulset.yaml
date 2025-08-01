@@ -14,6 +14,11 @@ spec:
     metadata:
       labels:
         app: {{ include "database.name" . }}
+      annotations:
+        # Annotations Prometheus - Désactivé car PostgreSQL n'expose pas de métriques par défaut
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "5432"
+        # prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: postgresql

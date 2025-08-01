@@ -35,8 +35,37 @@ kubectl get services
 **Services attendus :**
 - `webserver-orocommerce-simple` : NodePort 30080
 - `orocommerce-simple-mail-ui` : NodePort 30616
+- `prometheus-orocommerce-simple` : NodePort 30909 (Prometheus)
+- `grafana-orocommerce-simple` : NodePort 30300 (Grafana)
 
 ## 🌐 Accès à l'application
+
+### Port-Forward (Recommandé pour le développement)
+
+Pour un accès direct via localhost, utilisez les port-forward :
+
+```bash
+# Terminal 1 - OroCommerce
+kubectl port-forward svc/webserver-orocommerce-simple 8080:80
+
+# Terminal 2 - Prometheus
+kubectl port-forward svc/orocommerce-simple-prometheus 9090:9090
+
+# Terminal 3 - Grafana
+kubectl port-forward svc/orocommerce-simple-grafana 3000:3000
+
+# Terminal 4 - Exporteur Nginx (optionnel)
+kubectl port-forward svc/webserver-orocommerce-simple-nginx-exporter 9113:9113
+
+# Terminal 5 - MailHog
+kubectl port-forward svc/orocommerce-simple-mail-ui 8025:8025
+```
+
+**⚠️ Important :** Gardez les terminaux de port-forward ouverts pendant que vous utilisez les services. Fermer un terminal arrêtera le port-forward correspondant.
+
+### Accès via NodePort (Alternative)
+
+Si vous préférez utiliser les NodePorts :
 
 ### OroCommerce
 - **URL** : `http://oro.demo:30080` ou `http://localhost:30080`
@@ -46,6 +75,15 @@ kubectl get services
 ### MailHog (Interface mail)
 - **URL** : `http://localhost:30616`
 - **Fonction** : Capture tous les emails envoyés par OroCommerce
+
+### Prometheus (Monitoring)
+- **URL** : `http://localhost:30909`
+- **Fonction** : Collecte et exploration des métriques
+
+### Grafana (Dashboards)
+- **URL** : `http://localhost:30300`
+- **Identifiants** : `admin` / `admin`
+- **Fonction** : Visualisation des métriques et dashboards
 
 ## 🔧 Configuration automatique
 
@@ -58,6 +96,8 @@ kubectl get services
 6. **Permissions** des dossiers var/sessions, var/cache, etc.
 7. **Configuration mailer** vers MailHog
 8. **Service NodePort** sur le port 30080
+9. **Prometheus** pour la collecte de métriques
+10. **Grafana** pour les dashboards de monitoring
 
 ### 🎯 Test de l'installation
 
@@ -109,9 +149,10 @@ helm install orocommerce-simple . -f values.yaml
 ## 📝 Notes importantes
 
 - **Configuration hosts** : Ajoutez `127.0.0.1 oro.demo` dans votre fichier hosts pour une meilleure expérience
-- **Ports** : 30080 (OroCommerce), 30616 (MailHog)
+- **Ports** : 30080 (OroCommerce), 30616 (MailHog), 30909 (Prometheus), 30300 (Grafana)
 - **Données** : L'installation inclut des données d'exemple
 - **Sécurité** : Configuration de développement uniquement
+- **Monitoring** : Consultez `MONITORING.md` pour plus d'informations sur Prometheus et Grafana
 
 ---
 

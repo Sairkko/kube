@@ -29,3 +29,18 @@ webserver:
       claimName: "public-storage-orocommerce-simple"
     privateStorage:
       claimName: "private-storage-orocommerce-simple"
+
+# Configuration de l'exporteur Nginx
+nginxExporter:
+  enabled: true
+  image:
+    repository: nginx/nginx-prometheus-exporter
+    tag: "0.11.0"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: "100m"
+      memory: "128Mi"
+    requests:
+      cpu: "50m"
+      memory: "64Mi"

@@ -1,0 +1,99 @@
+# Configuration Prometheus pour OroCommerce
+enabled: false  # Désactivé par défaut, à activer dans le values principal
+
+# Configuration du service
+service:
+  type: NodePort
+  port: 9090
+  nodePort: 30909
+
+# Configuration du déploiement
+deployment:
+  replicas: 1
+  image:
+    repository: prom/prometheus
+    tag: "v2.45.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  # Configuration du volume pour les données persistantes
+  volume:
+    size: "10Gi"
+    storageClass: ""
+
+# Configuration Prometheus
+config:
+  global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+  
+  rule_files:
+    - /etc/prometheus/rules/*.yaml
+  
+  scrape_configs:
+    # Métriques du cluster Kubernetes
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+
+    # Métriques d'OroCommerce (PHP-FPM)
+    - job_name: 'orocommerce-php-fpm'
+      static_configs:
+        - targets: ['php-fpm-orocommerce-simple:9000']
+      metrics_path: /status
+      params:
+        format: ['prometheus']
+
+    # Métriques du webserver Nginx
+    - job_name: 'orocommerce-nginx'
+      static_configs:
+        - targets: ['webserver-orocommerce-simple:80']
+      metrics_path: /nginx_status
+
+    # Métriques de la base de données PostgreSQL
+    - job_name: 'orocommerce-postgresql'
+      static_configs:
+        - targets: ['database-orocommerce-simple:5432']
+      metrics_path: /metrics
+
+# Configuration des alertes (optionnel)
+alerts:
+  enabled: false
+  rules:
+    - name: "orocommerce-high-cpu"
+      condition: "cpu_usage > 80"
+      duration: "5m"
+
+# Configuration du ServiceAccount
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {} 

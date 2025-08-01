@@ -1,0 +1,80 @@
+# Configuration Grafana pour OroCommerce
+enabled: false  # Désactivé par défaut, à activer dans le values principal
+
+# Configuration du service
+service:
+  type: NodePort
+  port: 3000
+  nodePort: 30300
+
+# Configuration du déploiement
+deployment:
+  replicas: 1
+  image:
+    repository: grafana/grafana
+    tag: "10.0.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+  # Configuration du volume pour les données persistantes
+  volume:
+    size: "5Gi"
+    storageClass: ""
+
+# Configuration Grafana
+config:
+  # Configuration de sécurité
+  security:
+    admin_user: admin
+    admin_password: admin
+    allow_embedding: true
+  
+  # Configuration des serveurs
+  server:
+    http_port: 3000
+    domain: localhost
+    root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
+    serve_from_sub_path: "false"
+    enforce_domain: "false"
+  
+  # Configuration des bases de données
+  database:
+    type: sqlite3
+    path: /var/lib/grafana/grafana.db
+  
+  # Configuration des sessions
+  session:
+    provider: file
+    provider_config: sessions
+  
+  # Configuration des logs
+  log:
+    mode: console
+    level: info
+
+# Configuration des dashboards pré-configurés
+dashboards:
+  default:
+    enabled: true
+    label: orocommerce
+    search_path: /etc/grafana/provisioning/dashboards
+
+# Configuration des datasources pré-configurés
+datasources:
+  default:
+    enabled: true
+    label: orocommerce
+    search_path: /etc/grafana/provisioning/datasources
+
+# Configuration du ServiceAccount
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {} 

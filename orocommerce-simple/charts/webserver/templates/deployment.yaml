@@ -17,6 +17,10 @@ spec:
       annotations:
         # Force le redéploiement si la configuration change
         checksum/config: {{ include (print $.Template.BasePath "/nginx-config.yaml") . | sha256sum }}
+        # Annotations Prometheus - Désactivé car nous utilisons un exporter dédié
+        # prometheus.io/scrape: "true"
+        # prometheus.io/port: "80"
+        # prometheus.io/path: "/nginx_status"
     spec:
       initContainers:
         - name: wait-for-volume-init
