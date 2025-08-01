@@ -28,6 +28,8 @@ jobs:
     enabled: false
   install:
     enabled: true
+  fixPermissions:
+    enabled: true
 
 # Configuration des sous-charts
 webserver:
@@ -87,10 +89,11 @@ mail:
   enabled: true
   service:
     type: NodePort
+    port: 1025
     nodePort: 30025
   ui:
     enabled: true
     service:
       type: NodePort
       port: 8025
-      nodePort: 32446 
+      nodePort: 30616 
