@@ -50,6 +50,7 @@ graph TB
     end
     
     WS --> PHP
+    WS --> WSOCK
     PHP --> DB
     WS --> EXP
     EXP --> PROM
@@ -63,6 +64,11 @@ graph TB
     PHP --> PVC3
     PHP --> PVC4
     PHP --> PVC5
+    WSOCK --> PVC1
+    WSOCK --> PVC2
+    WSOCK --> PVC3
+    WSOCK --> PVC4
+    WSOCK --> PVC5
 ```
 
 ### Composants
@@ -73,7 +79,8 @@ graph TB
 | **PHP-FPM** | Backend PHP pour OroCommerce | 9000 | ClusterIP |
 | **Database** | PostgreSQL avec données d'exemple | 5432 | ClusterIP |
 | **WebSocket** | Notifications temps réel | 8080 | ClusterIP |
-| **MailHog** | Capture des emails | 30616 | NodePort |
+| **MailHog UI** | Interface web MailHog | 30616 | NodePort |
+| **MailHog SMTP** | Serveur SMTP MailHog | 30025 | NodePort |
 | **Prometheus** | Collecte de métriques | 30909 | NodePort |
 | **Grafana** | Dashboards de monitoring | 30300 | NodePort |
 | **Nginx Exporter** | Métriques Nginx | 9113 | ClusterIP |
@@ -159,7 +166,37 @@ kubectl get pvc
 
 ## 🌐 Accès aux Services
 
-### Port-Forward (Recommandé pour le développement)
+### Accès Direct via NodePort (Recommandé)
+
+Tous les services sont accessibles directement via leurs NodePorts :
+
+| Service | URL | Identifiants |
+|---------|-----|--------------|
+| **OroCommerce** | `http://oro.demo:30080` | `admin/admin` |
+| **Admin** | `http://oro.demo:30080/admin` | `admin/admin` |
+| **Prometheus** | `http://localhost:30909` | - |
+| **Grafana** | `http://localhost:30300` | `admin/admin` |
+| **MailHog UI** | `http://localhost:30616` | - |
+| **MailHog SMTP** | `localhost:30025` | - |
+
+### Configuration du fichier hosts
+
+Pour accéder à OroCommerce via `oro.demo:30080`, ajoutez cette ligne dans votre fichier hosts :
+
+**Windows :** `C:\Windows\System32\drivers\etc\hosts`  
+**Linux/Mac :** `/etc/hosts`
+
+```
+127.0.0.1 oro.demo
+```
+
+**Alternative avec localhost :**
+Si vous ne voulez pas modifier le fichier hosts, utilisez `http://localhost:30080` à la place.
+
+### Port-Forward (Alternative pour développement)
+
+Si vous préférez utiliser les port-forward (optionnel) :
+
 ```bash
 # Terminal 1 - OroCommerce
 kubectl port-forward svc/webserver-orocommerce-simple 8080:80
@@ -170,21 +207,23 @@ kubectl port-forward svc/orocommerce-simple-prometheus 9090:9090
 # Terminal 3 - Grafana
 kubectl port-forward svc/orocommerce-simple-grafana 3000:3000
 
-# Terminal 4 - Exporteur Nginx
+# Terminal 4 - Exporteur Nginx (optionnel)
 kubectl port-forward svc/webserver-orocommerce-simple-nginx-exporter 9113:9113
 
 # Terminal 5 - MailHog
 kubectl port-forward svc/orocommerce-simple-mail-ui 8025:8025
 ```
 
-### Accès via NodePort
+**⚠️ Important :** Gardez les terminaux de port-forward ouverts pendant que vous utilisez les services. Fermer un terminal arrêtera le port-forward correspondant.
+
+### Accès via Port-Forward
 | Service | URL | Identifiants |
 |---------|-----|--------------|
-| **OroCommerce** | `http://localhost:30080` | `admin/admin` |
-| **Admin** | `http://localhost:30080/admin` | `admin/admin` |
-| **Prometheus** | `http://localhost:30909` | - |
-| **Grafana** | `http://localhost:30300` | `admin/admin` |
-| **MailHog** | `http://localhost:30616` | - |
+| **OroCommerce** | `http://localhost:8080` | `admin/admin` |
+| **Admin** | `http://localhost:8080/admin` | `admin/admin` |
+| **Prometheus** | `http://localhost:9090` | - |
+| **Grafana** | `http://localhost:3000` | `admin/admin` |
+| **MailHog UI** | `http://localhost:8025` | - |
 
 ---
 

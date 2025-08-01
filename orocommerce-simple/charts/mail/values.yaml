@@ -10,9 +10,9 @@ env:
   MH_MAILDIR_PATH: /home/mailhog/maildir
 
 service:
-  type: ClusterIP
+  type: NodePort
   port: 1025  # Port SMTP
-  uiPort: 8025  # Port interface web
+  nodePort: 30025  # NodePort SMTP statique
 
 deployment:
   replicas: 1
@@ -22,8 +22,9 @@ deployment:
 ui:
   enabled: true
   service:
-    type: ClusterIP
+    type: NodePort
     port: 8025
+    nodePort: 30616  # NodePort UI statique
 
 # Configuration des volumes persistants
 persistence:

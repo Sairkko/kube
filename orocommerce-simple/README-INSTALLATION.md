@@ -68,9 +68,11 @@ kubectl port-forward svc/orocommerce-simple-mail-ui 8025:8025
 Si vous préférez utiliser les NodePorts :
 
 ### OroCommerce
-- **URL** : `http://oro.demo:30080` ou `http://localhost:30080`
-- **Admin** : `http://oro.demo:30080/admin` ou `http://localhost:30080/admin`
+- **URL** : `http://oro.demo:30080` (recommandé) ou `http://localhost:30080`
+- **Admin** : `http://oro.demo:30080/admin` (recommandé) ou `http://localhost:30080/admin`
 - **Identifiants** : `admin` / `admin`
+
+**⚠️ Configuration hosts requise :** Pour utiliser `oro.demo:30080`, ajoutez `127.0.0.1 oro.demo` dans votre fichier hosts.
 
 ### MailHog (Interface mail)
 - **URL** : `http://localhost:30616`

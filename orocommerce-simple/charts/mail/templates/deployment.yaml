@@ -36,7 +36,7 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
             - name: ui
-              containerPort: {{ .Values.service.uiPort }}
+              containerPort: {{ .Values.ui.service.port }}
               protocol: TCP
           {{- if and .Values.healthcheck.enabled .Values.healthcheck.liveness.enabled }}
           livenessProbe:

@@ -13,6 +13,9 @@ spec:
       targetPort: ui
       protocol: TCP
       name: ui
+      {{- if and (eq .Values.ui.service.type "NodePort") .Values.ui.service.nodePort }}
+      nodePort: {{ .Values.ui.service.nodePort }}
+      {{- end }}
   selector:
     {{- include "mail.selectorLabels" . | nindent 4 }}
 {{- end }} 
